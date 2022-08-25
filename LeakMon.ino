@@ -2,11 +2,11 @@
 
    Licence: GPLv3 or any later.
 
-   Vuotovahti is written for Teensy 4.1, with several Rain Sensors
-   FL-37 (or other versions like YL-83) attachet in ADC pins.
-   Software uses DHCP to get an IP, and syncs RTC to NTP every few
-   hours.  If RTC battery is attached, the initial time is read from
-   RTC as Teensy boots.
+   LeakMon is written for Teensy 4.1, with several Rain Sensors FL-37
+   (or other versions like YL-83) attached to ADC pins.  Software uses
+   DHCP to get an IP, and syncs RTC to NTP every few hours.  If RTC
+   battery is attached, the initial time is read from RTC as Teensy
+   boots.
 
    Whenever UDP port 8888 gets a connection, a byte string containing
    - 8bit int: data format version (0)
@@ -28,35 +28,56 @@
 #include <DS1307RTC.h>
 #include <Chrono.h>
 
+
+// DEBUG 0 mutes all Serial messages, 1 allows most and 2 all.
 #define DEBUG 2
-#define EQUIP_ID 1 // Zero means 'unidentified'.  Any nonzero should
-                   // be unique inside the organization.
-#define NTP_Interval 6*3600000 // Interval (in ms) for checking NTP
+// For EQUIP_ID zero means 'unidentified'.  Any nonzero should be
+// unique inside the organization.
+#define EQUIP_ID 1
+// Interval (in ms) for checking NTP
+#define NTP_Interval (6*3600*1000)
+// DATA_FORMAT defined for managing future changes.
 #define DATA_FORMAT 0
 
+//
+// General networking settings
+//
 byte mac[] = {
-	      // Enter the MAC address of your controller below
-	      0x04, 0xE9, 0xE5, 0x0C, 0x70, 0xA4
+   // Enter the MAC address of your controller below
+   0x04, 0xE9, 0xE5, 0x0C, 0x70, 0xA4
 };
-unsigned int localPort = 8888; // local port to listen on
-// The ADC pins to use
-int analogPin1 = A16;
-int analogPin2 = A17;
+// local port to listen for
+unsigned int localPort = 8888;
+// EthernetUDP instance for data communication
+EthernetUDP Udp;
+// buffer to hold incoming packet
+char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
+
+//
+// NTP Settings
+//
 // EthernetUDP instance for NTP connection
 EthernetUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 0, NTP_Interval);
 Chrono NTPChrono;
-// buffers for receiving and sending data
-char packetBuffer[UDP_TX_PACKET_MAX_SIZE];  // buffer to hold incoming packet
-// The EthernetUDP instance for data communication
-EthernetUDP Udp;
-uint32_t count = 0; // Runninq seq. number for queries.
+
+// The ADC pins to use
+int analogPin1 = A16;
+int analogPin2 = A17;
+
+// Runninq seq. number for queries.
+uint32_t count = 0;
+
+
+
 
 void setup() {
-  time_t NTPnow; // for querying the time from NTP servers
-  analogReadResolution(12); // Teensy 4.1 allows 12 bits, although
-			    // only 10 bits is usually usable due to
-			    // noise.
+  // for querying the time from NTP servers
+  time_t NTPnow;
+
+  // Teensy 4.1 allows 12 bits, although only 10 bits is usually
+  // usable due to noise.
+  analogReadResolution(12);
 
   // Open serial communications and wait for port to open:
   if(DEBUG) {
