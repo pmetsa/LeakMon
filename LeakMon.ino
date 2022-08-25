@@ -83,9 +83,10 @@ void setup() {
   if(DEBUG) {
     Serial.begin(115200);
     while (!Serial) {
-      ; // wait for serial port to connect. Needed for native USB port only
+      ; // Wait for serial port to connect.  Needed for native USB port only.
     }
   }
+
   // The function to get the time from the RTC
   setSyncProvider(RTC.get);
   if(DEBUG) {
@@ -136,8 +137,56 @@ void setup() {
 }
 
 void loop() {
-  // if there's data available, read a packet
+  uint16_t val1, val2; // For storing the Rain Sensor values
+  time_t RTCnow;
+
+  // If there is data available, read a packet
   int packetSize = Udp.parsePacket();
+  if (packetSize) {
+    read_incoming(packetSize);
+    // Read the data and record the time stamp
+    val1 = analogRead(analogPin1);
+    val2 = analogRead(analogPin2);
+    RTCnow = now();
+    send_reply(RTCnow, val1, val2);
+
+    if(DEBUG) {
+      digitalClockDisplay();
+      Serial.print("Pin1: ");
+      Serial.println(val1);
+      Serial.print("Pin2: ");
+      Serial.println(val2);
+    }
+  }
+}
+
+void read_incoming(int packetSize) {
+  if(DEBUG) {
+    Serial.print("Received packet of size ");
+    Serial.println(packetSize);
+    Serial.print("From ");
+  }
+  IPAddress remote = Udp.remoteIP();
+  if(DEBUG) for (int i=0; i < 4; i++) {
+    Serial.print(remote[i], DEC);
+    if (i < 3) {
+      Serial.print(".");
+    }
+  }
+  if(DEBUG) {
+    Serial.print(", port ");
+    Serial.println(Udp.remotePort());
+  }
+
+  // read the packet into packetBufffer
+  Udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
+  if(DEBUG) {
+    Serial.println("Contents:");
+    Serial.println(packetBuffer);
+  }
+}
+
+void send_reply(time_t RTCnow, uint16_t val1, uint16_t val2) {
   // The unions for sending integers as byte arrays
   union {
     uint32_t integer;
@@ -147,62 +196,21 @@ void loop() {
     uint16_t integer;
     byte bytes[2];
   } reply16;
-  uint16_t val1, val2; // For storing the Rain Sensor values
-  time_t RTCnow;
-  
-  if (packetSize) {
-    if(DEBUG) {
-      Serial.print("Received packet of size ");
-      Serial.println(packetSize);
-      Serial.print("From ");
-    }
-    IPAddress remote = Udp.remoteIP();
-    if(DEBUG) for (int i=0; i < 4; i++) {
-      Serial.print(remote[i], DEC);
-      if (i < 3) {
-        Serial.print(".");
-      }
-    }
-    if(DEBUG) {
-      Serial.print(", port ");
-      Serial.println(Udp.remotePort());
-    }
 
-    // read the packet into packetBufffer
-    Udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
-    if(DEBUG) {
-      Serial.println("Contents:");
-      Serial.println(packetBuffer);
-    }
-
-    // Read the data and record the time stamp
-    val1 = analogRead(analogPin1);
-    val2 = analogRead(analogPin2);
-    RTCnow = now();
-
-    // Build and send th UDP datagram
-    Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
-    Udp.write((uint8_t) DATA_FORMAT);
-    reply16.integer = (uint16_t) EQUIP_ID;
-    Udp.write(reply16.bytes, sizeof reply16.bytes);
-    reply32.integer = count++;
-    Udp.write(reply32.bytes, sizeof reply32.bytes);
-    reply32.integer = (uint32_t) RTCnow;
-    Udp.write(reply32.bytes, sizeof reply32.bytes);
-    reply16.integer = val1;
-    Udp.write(reply16.bytes, sizeof reply16.bytes);
-    reply16.integer = val2;
-    Udp.write(reply16.bytes, sizeof reply16.bytes);
-    Udp.endPacket();
-    
-    if(DEBUG) {
-      digitalClockDisplay();
-      Serial.print("Pin1: ");
-      Serial.println(val1);
-      Serial.print("Pin2: ");
-      Serial.println(val2);
-    }
-  }
+  // Build and send th UDP datagram
+  Udp.beginPacket(Udp.remoteIP(), Udp.remotePort());
+  Udp.write((uint8_t) DATA_FORMAT);
+  reply16.integer = (uint16_t) EQUIP_ID;
+  Udp.write(reply16.bytes, sizeof reply16.bytes);
+  reply32.integer = count++;
+  Udp.write(reply32.bytes, sizeof reply32.bytes);
+  reply32.integer = (uint32_t) RTCnow;
+  Udp.write(reply32.bytes, sizeof reply32.bytes);
+  reply16.integer = val1;
+  Udp.write(reply16.bytes, sizeof reply16.bytes);
+  reply16.integer = val2;
+  Udp.write(reply16.bytes, sizeof reply16.bytes);
+  Udp.endPacket();
 }
 
 void digitalClockDisplay(){
