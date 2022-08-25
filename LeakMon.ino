@@ -28,14 +28,14 @@
 #include <DS1307RTC.h>
 #include <Chrono.h>
 
-#define DEBUG 1
+#define DEBUG 2
 #define EQUIP_ID 1 // Zero means 'unidentified'.  Any nonzero should
                    // be unique inside the organization.
 #define NTP_Interval 6*3600000 // Interval (in ms) for checking NTP
 #define DATA_FORMAT 0
 
 byte mac[] = {
-	      // Enter the MAC address of the controller below
+	      // Enter the MAC address of your controller below
 	      0x04, 0xE9, 0xE5, 0x0C, 0x70, 0xA4
 };
 unsigned int localPort = 8888; // local port to listen on
@@ -59,48 +59,57 @@ void setup() {
 			    // noise.
 
   // Open serial communications and wait for port to open:
-  Serial.begin(115200);
-  while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
+  if(DEBUG) {
+    Serial.begin(115200);
+    while (!Serial) {
+      ; // wait for serial port to connect. Needed for native USB port only
+    }
   }
   // The function to get the time from the RTC
   setSyncProvider(RTC.get);
-  if(timeStatus()!= timeSet) 
-     Serial.println("Unable to sync with the RTC");
-  else
-     Serial.println("RTC has set the system time");
+  if(DEBUG) {
+    if(timeStatus()!= timeSet)
+      Serial.println("Unable to sync with the RTC");
+    else
+      Serial.println("RTC has set the system time");
+  }
   // start the Ethernet connection
-  Serial.println("Initialize Ethernet with DHCP:");
+  if(DEBUG) Serial.println("Initialize Ethernet with DHCP:");
   if (Ethernet.begin(mac) == 0) {
-    Serial.println("Failed to configure Ethernet using DHCP");
-    if (Ethernet.hardwareStatus() == EthernetNoHardware) {
-      Serial.println("Ethernet was not found.  Sorry, can't run without hardware. :(");
-    } else if (Ethernet.linkStatus() == LinkOFF) {
-      Serial.println("Ethernet cable is not connected.");
+    if(DEBUG) {
+      Serial.println("Failed to configure Ethernet using DHCP");
+      if (Ethernet.hardwareStatus() == EthernetNoHardware) {
+	Serial.println("Ethernet was not found.  Sorry, can't run without hardware. :(");
+      } else if (Ethernet.linkStatus() == LinkOFF) {
+	Serial.println("Ethernet cable is not connected.");
+      }
     }
     // no point in carrying on, so do nothing forevermore:
     while (true) {
       delay(1);
     }
   }
-  // print your local IP address:
-  Serial.print("My IP address: ");
-  Serial.println(Ethernet.localIP());
-  Serial.println("Setting the time..");
+  if(DEBUG) {
+    // print your local IP address:
+    Serial.print("My IP address: ");
+    Serial.println(Ethernet.localIP());
+    Serial.println("Setting the time..");
+  }
   timeClient.begin();
   timeClient.update();
   NTPnow=timeClient.getEpochTime();
   RTC.set(NTPnow);
   setTime(NTPnow);
-  Serial.print("NTP updated. Time: ");
-  Serial.println(NTPnow, DEC);
-  if (DEBUG) {
+  if(DEBUG) {
+    Serial.print("NTP updated. Time: ");
+    Serial.println(NTPnow, DEC);
+  }
+  if (DEBUG>1) {
     time_t RTCnow = now();
     Serial.print("RTC: ");
     Serial.println(RTCnow, DEC);
   }
-  digitalClockDisplay();
-  
+  if(DEBUG) digitalClockDisplay();
   // start UDP
   Udp.begin(localPort);
 }
@@ -121,23 +130,29 @@ void loop() {
   time_t RTCnow;
   
   if (packetSize) {
-    Serial.print("Received packet of size ");
-    Serial.println(packetSize);
-    Serial.print("From ");
+    if(DEBUG) {
+      Serial.print("Received packet of size ");
+      Serial.println(packetSize);
+      Serial.print("From ");
+    }
     IPAddress remote = Udp.remoteIP();
-    for (int i=0; i < 4; i++) {
+    if(DEBUG) for (int i=0; i < 4; i++) {
       Serial.print(remote[i], DEC);
       if (i < 3) {
         Serial.print(".");
       }
     }
-    Serial.print(", port ");
-    Serial.println(Udp.remotePort());
+    if(DEBUG) {
+      Serial.print(", port ");
+      Serial.println(Udp.remotePort());
+    }
 
     // read the packet into packetBufffer
     Udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
-    Serial.println("Contents:");
-    Serial.println(packetBuffer);
+    if(DEBUG) {
+      Serial.println("Contents:");
+      Serial.println(packetBuffer);
+    }
 
     // Read the data and record the time stamp
     val1 = analogRead(analogPin1);
@@ -159,11 +174,13 @@ void loop() {
     Udp.write(reply16.bytes, sizeof reply16.bytes);
     Udp.endPacket();
     
-    digitalClockDisplay();
-    Serial.print("Pin1: ");
-    Serial.println(val1);
-    Serial.print("Pin2: ");
-    Serial.println(val2);
+    if(DEBUG) {
+      digitalClockDisplay();
+      Serial.print("Pin1: ");
+      Serial.println(val1);
+      Serial.print("Pin2: ");
+      Serial.println(val2);
+    }
   }
 }
 

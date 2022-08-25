@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# (c) 2022 Pekko Metsä
+# License: GPLv3 or any later
 
 import socket
 import configparser
@@ -16,8 +18,8 @@ with socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM) as s:
     s.sendall(b'\n')
     data = s.recv(512)
 
-df      = data[0]
-id_b    = data[1:3]
+df      = data[0]   # One byte is read as an integer.  No need to convert.
+id_b    = data[1:3] # Longer stuff is read as byte strings.
 count_b = data[3:7]
 ts_b    = data[7:11]
 v1_b    = data[11:13]
