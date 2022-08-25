@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
 
 import socket
+import configparser
 from datetime import datetime
 
-HOST='teensy41.poroinfra.metsa'
-PORT=8888
+configfile = 'leakmon.conf'
+cfg = configparser.ConfigParser()
+cfg.read(configfile)
+
+HOST =     cfg.get('network', 'arduino')
+PORT = int(cfg.get('network', 'port'))
 
 with socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM) as s:
     s.connect((HOST, PORT))
