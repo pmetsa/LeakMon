@@ -3,15 +3,16 @@
 ## Arduino/Teensy Water Leakage Monitor
 
 
-LeakMon is written for Teensy 4.1, with several Rain Sensors FL-37 (or
-other versions like YL-83) attached in the ADC pins.  Software uses
+LeakMon is written for Teensy 4.1, with several FL-37 Rain Sensors (or
+other versions like YL-83) attached to the ADC pins.  Software uses
 DHCP to get an IP, and syncs RTC to NTP every few hours.  If RTC
 battery is attached, the initial time is read from RTC as Teensy
 boots.
 
 Intended use is to place the Rain Sensors under e.g. refrigerator,
 freezer and dishwasher, connect the Teensy to Ethernet, and run the
-Python part of the software in a nearby server.
+Python part of the software in a nearby server.  The aim is to use the
+Python code to launch an alarm when any leakage is detected.
 
 Whenever Teensy gets a UDP connection to port 8888, it replies by
 sending a byte string containing unsigned little-endian integers as
