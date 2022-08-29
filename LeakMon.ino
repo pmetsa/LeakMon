@@ -56,6 +56,7 @@ char packetBuffer[UDP_TX_PACKET_MAX_SIZE];
 //
 // NTP Settings
 //
+
 // EthernetUDP instance for NTP connection
 EthernetUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "europe.pool.ntp.org", 0, NTP_Interval);
@@ -82,23 +83,20 @@ void setup() {
   // Open serial communications and wait for port to open:
   if(DEBUG) {
     Serial.begin(115200);
-    while (!Serial) {
-      ; // Wait for serial port to connect.  Needed for native USB port only.
-    }
   }
 
   // The function to get the time from the RTC
   setSyncProvider(RTC.get);
-  if(DEBUG) {
+  if(DEBUG && Serial) {
     if(timeStatus()!= timeSet)
       Serial.println("Unable to sync with the RTC");
     else
       Serial.println("RTC has set the system time");
   }
   // start the Ethernet connection
-  if(DEBUG) Serial.println("Initialize Ethernet with DHCP:");
+  if(DEBUG && Serial) Serial.println("Initialize Ethernet with DHCP:");
   if (Ethernet.begin(mac) == 0) {
-    if(DEBUG) {
+    if(DEBUG && Serial) {
       Serial.println("Failed to configure Ethernet using DHCP");
       if (Ethernet.hardwareStatus() == EthernetNoHardware) {
 	Serial.println("Ethernet was not found.  Sorry, can't run without hardware. :(");
@@ -111,7 +109,7 @@ void setup() {
       delay(1);
     }
   }
-  if(DEBUG) {
+  if(DEBUG && Serial) {
     // print your local IP address:
     Serial.print("My IP address: ");
     Serial.println(Ethernet.localIP());
@@ -122,16 +120,18 @@ void setup() {
   NTPnow=timeClient.getEpochTime();
   RTC.set(NTPnow);
   setTime(NTPnow);
-  if(DEBUG) {
+  if(DEBUG && Serial) {
     Serial.print("NTP updated. Time: ");
     Serial.println(NTPnow, DEC);
   }
   if (DEBUG>1) {
     time_t RTCnow = now();
-    Serial.print("RTC: ");
-    Serial.println(RTCnow, DEC);
+    if(Serial) {
+      Serial.print("RTC: ");
+      Serial.println(RTCnow, DEC);
+    }
   }
-  if(DEBUG) digitalClockDisplay();
+  if(DEBUG && Serial) digitalClockDisplay();
   // start UDP
   Udp.begin(localPort);
 }
@@ -150,7 +150,7 @@ void loop() {
     RTCnow = now();
     send_reply(RTCnow, val1, val2);
 
-    if(DEBUG) {
+    if(DEBUG && Serial) {
       digitalClockDisplay();
       Serial.print("Pin1: ");
       Serial.println(val1);
@@ -161,26 +161,26 @@ void loop() {
 }
 
 void read_incoming(int packetSize) {
-  if(DEBUG) {
+  if(DEBUG && Serial) {
     Serial.print("Received packet of size ");
     Serial.println(packetSize);
     Serial.print("From ");
   }
   IPAddress remote = Udp.remoteIP();
-  if(DEBUG) for (int i=0; i < 4; i++) {
+  if(DEBUG && Serial) for (int i=0; i < 4; i++) {
     Serial.print(remote[i], DEC);
     if (i < 3) {
       Serial.print(".");
     }
   }
-  if(DEBUG) {
+  if(DEBUG && Serial) {
     Serial.print(", port ");
     Serial.println(Udp.remotePort());
   }
 
   // read the packet into packetBufffer
   Udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
-  if(DEBUG) {
+  if(DEBUG && Serial) {
     Serial.println("Contents:");
     Serial.println(packetBuffer);
   }
